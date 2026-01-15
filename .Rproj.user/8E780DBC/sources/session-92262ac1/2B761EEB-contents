@@ -1,8 +1,8 @@
 Package: DanStuff
-Title: Score and Analyze AMP Data
+Title: Stuff Dan Uses
 Version: 0.1.0
 Authors@R: 
-    person("Dan", "Phipps", , "djphipps@jyu. fi", role = c("aut", "cre"))
+    person("Dan", "Phipps", , "djphipps@jyu.fi", role = c("aut", "cre"))
 Description: Does things I do
 License: MIT + file LICENSE
 Encoding: UTF-8

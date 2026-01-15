@@ -1,0 +1,1345 @@
+---
+title: 'Supplement 2'
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    self_contained: true
+    toc: true
+    toc_depth: 3   # levels of headers to include (H1–H3)
+    toc_float: true # floating sidebar table of contents
+---
+
+# Supplement 2.1 - Preliminary Statistics
+This supplement contains descriptive statsitics, internal consistency statistics, and bivariate correlations, alongside the syntax used to produce them.
+
+## Setup
+
+```{r setup, message=FALSE, warning=FALSE}
+
+
+# Load required packages
+library(psych)
+library(haven)
+library(sjlabelled)  # for zap_labels() to remove SPSS labels if present
+library(dplyr)
+library(reactable)
+
+
+
+copyxl <- function(df, sep="\t", dec=".", max.size=(200*1000)){
+  Title <- deparse(substitute(df))
+  df2 <- list(Title,df)
+  write.table(df2, paste0("clipboard-", formatC(max.size, format="f", digits=3)), sep=sep, col.names=TRUE, row.names=TRUE, dec=dec)
+}
+
+
+
+NicMatched <- read_sav("Data/NicMatched.sav")
+
+## Add or remove as needed, makes all people who reported no addiction have lowest possible score
+NicMatched <- NicMatched %>%
+  mutate(
+    Vape_Add_Mean = ifelse(is.na(Vape_Add_Mean), 1, Vape_Add_Mean),
+    Cigs_Add_Mean = ifelse(is.na(Cigs_Add_Mean), 1, Cigs_Add_Mean),
+    Pouch_Add_Mean = ifelse(is.na(Pouch_Add_Mean), 1, Pouch_Add_Mean),
+    Vape_Add1 = ifelse(is.na(Vape_Add1), 1, Vape_Add1),
+    Vape_Add2 = ifelse(is.na(Vape_Add2), 1, Vape_Add2),
+    Vape_Add3 = ifelse(is.na(Vape_Add3), 1, Vape_Add3),
+    Vape_Add4 = ifelse(is.na(Vape_Add4), 1, Vape_Add4),
+    Cigs_Add1 = ifelse(is.na(Cigs_Add1), 1, Cigs_Add1),
+    Cigs_Add2 = ifelse(is.na(Cigs_Add2), 1, Cigs_Add2),
+    Cigs_Add3 = ifelse(is.na(Cigs_Add3), 1, Cigs_Add3),
+    Cigs_Add4 = ifelse(is.na(Cigs_Add4), 1, Cigs_Add4),
+    Pouch_Add1 = ifelse(is.na(Pouch_Add1), 1, Pouch_Add1),
+    Pouch_Add2 = ifelse(is.na(Pouch_Add2), 1, Pouch_Add2),
+    Pouch_Add3 = ifelse(is.na(Pouch_Add3), 1, Pouch_Add3),
+    Pouch_Add4 = ifelse(is.na(Pouch_Add4), 1, Pouch_Add4)
+  )
+
+NicMatched <- within(NicMatched, {
+  Gender_Male <- as.numeric(Gender == 1)
+  Gender_NB <- as.numeric(Gender == 3)
+  # Leave out one category as the reference!
+})
+
+
+
+# Define scales and their item names (example - replace with your full list)
+scales <- list(
+  Vape_Add     = c("Vape_Add1", "Vape_Add2", "Vape_Add3", "Vape_Add4"),
+  Vape_AfAtt   = c("Vape_AffAtt1", "Vape_AffAtt2"),
+  Vape_InAtt   = c("Vape_InsAtt1", "Vape_InsAtt2"),
+  Vape_SNFam   = c("Vape_FamNorm1", "Vape_FamNorm2"),
+  Vape_SNFriend= c("Vape_FriendNorm1", "Vape_FriendNorm2"),
+  Vape_PBC     = c("Vape_PBC1", "Vape_PBC2"),
+  Vape_Intent  = c("Vape_Intent1", "Vape_Intent2"),
+  Vape_DNFam  = c("Vape_FamDN"),
+  Vape_DNFriends  = c("Vape_FriendDN"),
+  Vape_PastBe  = c("Vape_L4W"),
+  Pouch_Add      = c("Pouch_Add1", "Pouch_Add2", "Pouch_Add3", "Pouch_Add4"),
+  Pouch_AfAtt    = c("Pouch_AffAtt1", "Pouch_AffAtt2"),
+  Pouch_InAtt    = c("Pouch_InsAtt1", "Pouch_InsAtt2"),
+  Pouch_SNFam    = c("Pouch_FamNorm1", "Pouch_FamNorm2"),
+  Pouch_SNFriend = c("Pouch_FriendNorm1", "Pouch_FriendNorm2"),
+  Pouch_PBC      = c("Pouch_PBC1", "Pouch_PBC2"),
+  Pouch_Intent   = c("Pouch_Intent1", "Pouch_Intent2"),
+  Pouch_DNFam  = c("Pouch_FamDN"),
+  Pouch_DNFriends  = c("Pouch_FriendDN"),
+  Pouch_PastBe  = c("Pouch_L4W"),
+  Cigs_Add      = c("Cigs_Add1", "Cigs_Add2", "Cigs_Add3", "Cigs_Add4"),
+  Cigs_AfAtt    = c("Cigs_AffAtt1", "Cigs_AffAtt2"),
+  Cigs_InAtt    = c("Cigs_InsAtt1", "Cigs_InsAtt2"),
+  Cigs_SNFam    = c("Cigs_FamNorm1", "Cigs_FamNorm2"),
+  Cigs_SNFriend = c("Cigs_FriendNorm1", "Cigs_FriendNorm2"),
+  Cigs_PBC      = c("Cigs_PBC1", "Cigs_PBC2"),
+  Cigs_Intent   = c("Cigs_Intent1", "Cigs_Intent2"),
+  Cigs_DNFam  = c("Cigs_FamDN"),
+  Cigs_DNFriends  = c("Cigs_FriendDN"),
+  Cigs_PastBe  = c("Cigs_L4W"),
+  HLit         = c("Hlit1", "Hlit2", "Hlit3", "Hlit4", "Hlit5"),
+  SES         = c("SES_Score")
+  
+)
+
+```
+## Means and Internal Consistency Statistics
+``` {r Means, message=FALSE, warning=FALSE}
+
+results <- data.frame(
+  Scale = character(),
+  Mean = numeric(),
+  Median = numeric(),
+  Min = numeric(),
+  Max = numeric(),
+  SD = numeric(),
+  Cronbach_alpha = numeric(),
+  McDonalds_omega = numeric(),
+  stringsAsFactors = FALSE
+)
+
+for(scalename in names(scales)) {
+  items <- scales[[scalename]]
+  
+  if(!all(items %in% names(NicMatched))) {
+    warning(paste("Some items in scale", scalename, "are missing. Skipping."))
+    next
+  }
+  
+  dat <- NicMatched[, items, drop = FALSE]
+  
+  # Convert labelled to numeric & strip labels
+  dat <- as.data.frame(lapply(dat, function(x) {
+    if (inherits(x, "labelled")) {
+      zap_labels(as.numeric(x))
+    } else {
+      as.numeric(x)
+    }
+  }))
+  
+  # Remove zero variance columns
+  zero_var_cols <- sapply(dat, function(x) var(x, na.rm = TRUE) == 0)
+  if(any(zero_var_cols)) {
+    dat <- dat[, !zero_var_cols, drop = FALSE]
+  }
+  
+  if(ncol(dat) == 0) {
+    warning(paste("No variance items in scale", scalename, "- skipping."))
+    results <- rbind(results, data.frame(
+      Scale = scalename,
+      Mean = NA, Median = NA, Min = NA, Max = NA, SD = NA,
+      Cronbach_alpha = NA,
+      McDonalds_omega = NA,
+      stringsAsFactors = FALSE
+    ))
+    next
+  }
+  
+  scale_scores <- rowMeans(dat, na.rm = TRUE)
+  
+  # Cronbach's alpha
+  scale_alpha <- if(ncol(dat) > 1) {
+    tryCatch(alpha(dat, warnings = FALSE)$total$raw_alpha, error = function(e) NA)
+  } else {
+    NA
+  }
+  
+  # McDonald's omega
+  scale_omega <- if(ncol(dat) > 1) {
+    tryCatch({
+      suppressWarnings(omega(dat, nfactors = 1, warnings = FALSE)$omega.tot)
+    }, error = function(e) NA)
+  } else {
+    NA
+  }
+  
+  results <- rbind(results, data.frame(
+    Scale = scalename,
+    Mean = mean(scale_scores, na.rm = TRUE),
+    Median = median(scale_scores, na.rm = TRUE),
+    Min = min(scale_scores, na.rm = TRUE),
+    Max = max(scale_scores, na.rm = TRUE),
+    SD = sd(scale_scores, na.rm = TRUE),
+    Cronbach_alpha = scale_alpha,
+    McDonalds_omega = scale_omega,
+    stringsAsFactors = FALSE
+  ))
+}
+
+results_rounded <- results %>%
+  mutate(across(where(is.numeric), ~ round(.x, 2)))
+
+```
+
+```{r PrintDesc}
+reactable(
+  results_rounded,
+  pagination = FALSE,
+  searchable = TRUE,
+  highlight = TRUE,
+  striped = TRUE
+)
+```
+## Histograms
+```{r H2, message=FALSE,warning=FALSE}
+library(dplyr)
+library(plotly)
+
+make_hist_data <- function(x, binsize = 0.5) {
+  rng <- range(x, na.rm = TRUE)
+  breaks <- seq(rng[1], rng[2] + binsize, binsize)
+  h <- hist(x, breaks = breaks, plot = FALSE)
+  data.frame(x = h$mids, y = h$counts)
+}
+
+# precompute histograms for each scale
+hist_data_list <- lapply(scales, function(items) {
+  vals <- if (length(items) == 1) NicMatched[[items]]
+          else rowMeans(NicMatched[, items], na.rm = TRUE)
+  make_hist_data(vals, binsize = 0.5)
+})
+
+names(hist_data_list) <- names(scales)
+
+# build plot with pre-aggregated counts (lighter)
+fig <- plot_ly()
+for (i in seq_along(hist_data_list)) {
+  df <- hist_data_list[[i]]
+  fig <- fig %>% add_bars(
+    x = df$x, y = df$y,
+    name = names(hist_data_list)[i],
+    visible = if (i==1) TRUE else FALSE
+  )
+}
+
+# dropdown menu
+buttons <- lapply(seq_along(hist_data_list), function(i) {
+  vis <- rep(FALSE, length(hist_data_list))
+  vis[i] <- TRUE
+  list(
+    method = "update",
+    args = list(list(visible = vis),
+                list(title = paste("Histogram of", names(hist_data_list)[i]))),
+    label = names(hist_data_list)[i]
+  )
+})
+
+fig <- fig %>%
+  layout(
+    updatemenus = list(list(active = 0,
+                            buttons = buttons,
+                            x = 0.5, y = 1.15, xanchor="center")),
+    title = paste("Histogram of", names(hist_data_list)[1]),
+    barmode = "overlay"
+)
+fig
+
+```
+
+
+
+
+
+## Zero Order Correlations
+
+```{r corrs, message=FALSE, warning=FALSE}
+library(psych)
+library(knitr)
+scale_scores <- lapply(scales, function(items) {
+  if(length(items) == 1) {
+    NicMatched[[items]]   # single-item "scale"
+  } else {
+    rowMeans(NicMatched[, items], na.rm = TRUE)   # multi-item scale = mean
+  }
+})
+
+# 2. Convert list to dataframe
+scale_scores <- as.data.frame(scale_scores)
+
+# 3. Compute correlations with p-values
+cor_results <- psych::corr.test(scale_scores, use = "pairwise", method = "pearson")
+
+# Get correlations and p-values
+cor_mat <- cor_results$r
+pvals   <- cor_results$p
+
+# Convert matrices to long form with indices
+cor_long <- as.data.frame(as.table(cor_mat)) %>%
+  rename(Scale1 = Var1, Scale2 = Var2, Correlation = Freq)
+
+pval_long <- as.data.frame(as.table(pvals)) %>%
+  rename(Scale1 = Var1, Scale2 = Var2, p = Freq)
+
+# Join
+cor_tidy <- left_join(cor_long, pval_long, by = c("Scale1","Scale2"))
+
+# Remove duplicates and self-correlations
+cor_tidy <- cor_tidy %>%
+  filter(as.numeric(factor(Scale1, levels=rownames(cor_mat))) <
+         as.numeric(factor(Scale2, levels=rownames(cor_mat))))
+
+# Round & format
+cor_tidy <- cor_tidy %>%
+  mutate(Correlation = round(Correlation, 2),
+         p = signif(p, 3),
+         Effect = paste(Scale1, "-", Scale2)) %>%
+  select(Effect, Correlation, p)
+
+# Display in nice RMD table
+
+cor_tidy <- cor_tidy %>%
+  mutate(Correlation = round(Correlation, 3),
+         p = round(p, 3))
+
+reactable(
+  cor_tidy,
+  pagination = TRUE,
+  defaultPageSize = 20,
+  searchable = TRUE,
+  highlight = TRUE,
+  striped = TRUE
+)
+```
+
+
+# Suplement 2.2 Non-Parametric Comparisons
+This supplement contains non-parametric comparisons for each contruct between vapes, pouches, and cigarettes.
+
+```{r NonParas, message = FALSE, warning=FALSE}
+library(tidyr)
+library(dplyr)
+library(rstatix)
+library(coin)
+
+NicMatched <- NicMatched %>% mutate(id = row_number())
+constructs <- c("Add_Mean", "Intent_Mean", "L4W", "AfAtt_Mean", "InAtt_Mean",
+                "SNFam_Mean", "SNFriend_Mean", "FamDN", "FriendDN", "PBC_Mean")
+
+for (construct in constructs) {
+  cat("\n\n===== Non-parametric results for construct:", construct, "=====\n")
+  
+  temp_df <- NicMatched %>%
+    select(id, matches(paste0("^(Vape|Pouch|Cigs)_", construct, "$"))) %>%
+    rename_with(~ gsub(paste0("_(?:", construct, ")$"), "", .x))
+  
+  desc <- temp_df %>%
+    pivot_longer(cols = -id, names_to = "Product", values_to = "value") %>%
+    group_by(Product) %>%
+    summarise(mean = mean(value, na.rm = TRUE),
+              median = median(value, na.rm = TRUE),
+              sd = sd(value, na.rm = TRUE))
+  print(desc)
+  
+  mat <- temp_df %>% select(-id) %>% as.matrix()
+  fried_res <- stats::friedman.test(mat)
+  kendall_w <- fried_res$statistic / (length(mat[,1]) * (ncol(mat) - 1))
+  print(fried_res)
+  cat(sprintf("Kendall's W effect size: %.3f\n", kendall_w))
+  
+  # All pairwise comparisons
+  pairs <- combn(c("Vape", "Pouch", "Cigs"), 2, simplify = FALSE)
+  
+  pairwise_results <- lapply(pairs, function(pair) {
+    pair_df <- temp_df %>%
+      select(id, all_of(pair))
+    pair_df <- na.omit(pair_df)
+    
+    # Wilcoxon signed-rank test with coin for standardized statistic
+    test_res <- wilcoxsign_test(as.formula(paste(pair[1], "~", pair[2])), data = pair_df, paired = TRUE)
+    
+    Z_val <- statistic(test_res, "standardized")[[1]]
+    N <- nrow(pair_df)
+    r_val <- abs(Z_val) / sqrt(N)
+    
+    p_val <- pvalue(test_res)
+    p_val_b <- p.adjust(p_val, method = "bonferroni")
+    
+    data.frame(
+      Comparison = paste(pair, collapse = " vs "),
+      N = N,
+      Z = round(Z_val,2),
+      r = round(r_val,3),
+      p_value = signif(p_val, 3),
+      p_value_bonf = round(p_val_b,3)
+    )
+  })
+  
+  pairwise_results_df <- bind_rows(pairwise_results)
+  
+  cat("\nPairwise Wilcoxon signed-rank tests with effect size r:\n")
+  print(pairwise_results_df)
+}
+
+```
+
+
+# Supplement 2.3 - Main SEM Model Tests
+This supplement contains the results of structural equation modelling tests for each outcome. Indirect effects may be interpreted with the following key:
+HL = Health Literacy.
+SESL = Low socioeconomic status (vs. Middle).
+SESH = High socioeconomic status (vs. Middle).
+AG = Age.
+M = Male (vs. Female).
+NB = Non-binary (vs. Female).
+AF = Affective Attitude.
+IN = Instrumental Attitude.
+SF = Friend Subjective Norms.
+SM = Family Subjective Norms.
+FD = Friends Descriptive Norm.
+FM = Family Descriptive Norm.
+IT = Intention.
+VL = Past Behavior.
+AD = Addiction.
+
+## Vapes
+```{r Vapes, message = FALSE, warning=FALSE}
+library(lavaan)
+VapeM1 <- '
+  AfAtt =~ Vape_AffAtt1 + Vape_AffAtt2
+  InAtt =~ Vape_InsAtt1 + Vape_InsAtt2
+  SNfri =~ Vape_FamNorm1 + Vape_FamNorm2
+  SNFam =~ Vape_FriendNorm1 + Vape_FriendNorm2
+  PBC =~ Vape_PBC1 + Vape_PBC2
+  Intnt =~ Vape_Intent1 + Vape_Intent2
+  Add =~ Vape_Add1 + Vape_Add2 + Vape_Add3 + Vape_Add4
+  HeLit =~ Hlit1 + Hlit2 + Hlit3 + Hlit4 + Hlit5
+
+  # Replace SES_Score with SESHigh and SESLow
+  AfAtt ~ AF_HL*HeLit + AF_SESH*SESHigh + AF_SESL*SESLow + AF_AG*Age + AF_M*Gender_Male + AF_NB*Gender_NB
+  InAtt ~ IN_HL*HeLit + IN_SESH*SESHigh + IN_SESL*SESLow + IN_AG*Age + IN_M*Gender_Male + IN_NB*Gender_NB
+  SNfri ~ SF_HL*HeLit + SF_SESH*SESHigh + SF_SESL*SESLow + SF_AG*Age + SF_M*Gender_Male + SF_NB*Gender_NB
+  SNFam ~ SM_HL*HeLit + SM_SESH*SESHigh + SM_SESL*SESLow + SM_AG*Age + SM_M*Gender_Male + SM_NB*Gender_NB
+  PBC   ~ PB_HL*HeLit + PB_SESH*SESHigh + PB_SESL*SESLow + PB_AG*Age + PB_M*Gender_Male + PB_NB*Gender_NB
+  Vape_FriendDN ~ FD_HL*HeLit + FD_SESH*SESHigh + FD_SESL*SESLow + FD_AG*Age + FD_M*Gender_Male + FD_NB*Gender_NB
+  Vape_FamDN    ~ FM_HL*HeLit + FM_SESH*SESHigh + FM_SESL*SESLow + FM_AG*Age + FM_M*Gender_Male + FM_NB*Gender_NB
+
+  Vape_L4W ~ VL_AF*AfAtt + VL_IN*InAtt + VL_SF*SNfri + VL_SM*SNFam +
+             VL_PB*PBC + VL_FD*Vape_FriendDN + VL_FM*Vape_FamDN +
+             VL_HL*HeLit + VL_SESH*SESHigh + VL_SESL*SESLow + VL_AG*Age +
+             VL_M*Gender_Male + VL_NB*Gender_NB
+  Add ~ AD_AF*AfAtt + AD_IN*InAtt + AD_SF*SNfri + AD_SM*SNFam +
+         AD_PB*PBC + AD_FD*Vape_FriendDN + AD_FM*Vape_FamDN +
+         AD_HL*HeLit + AD_SESH*SESHigh + AD_SESL*SESLow + AD_AG*Age +
+         AD_M*Gender_Male + AD_NB*Gender_NB
+  Intnt ~ IT_AF*AfAtt + IT_IN*InAtt + IT_SF*SNfri + IT_SM*SNFam +
+          IT_PB*PBC + IT_FD*Vape_FriendDN + IT_FM*Vape_FamDN +
+          IT_HL*HeLit + IT_SESH*SESHigh + IT_SESL*SESLow + IT_AG*Age +
+          IT_M*Gender_Male + IT_NB*Gender_NB
+
+  # Covariances remain unchanged
+  HeLit ~~ SESHigh + SESLow
+  AfAtt ~~ InAtt + SNfri + SNFam + PBC + Vape_FriendDN + Vape_FamDN
+  InAtt ~~ SNfri + SNFam + PBC + Vape_FriendDN + Vape_FamDN
+  SNfri ~~ SNFam + PBC + Vape_FriendDN + Vape_FamDN
+  SNFam ~~ PBC + Vape_FriendDN + Vape_FamDN
+  PBC ~~ Vape_FriendDN + Vape_FamDN
+  Vape_FriendDN ~~ Vape_FamDN
+
+  # Indirect effects: SESHigh and SESLow to Add, Intnt, Vape_L4W
+  SESH_AF_AD := AF_SESH * AD_AF
+  SESH_IN_AD := IN_SESH * AD_IN
+  SESH_SF_AD := SF_SESH * AD_SF
+  SESH_SM_AD := SM_SESH * AD_SM
+  SESH_PB_AD := PB_SESH * AD_PB
+  SESH_FD_AD := FD_SESH * AD_FD
+  SESH_FM_AD := FM_SESH * AD_FM
+  SESH_AD_ind_total := SESH_AF_AD + SESH_IN_AD + SESH_SF_AD + SESH_SM_AD + SESH_PB_AD + SESH_FD_AD + SESH_FM_AD
+
+  SESL_AF_AD := AF_SESL * AD_AF
+  SESL_IN_AD := IN_SESL * AD_IN
+  SESL_SF_AD := SF_SESL * AD_SF
+  SESL_SM_AD := SM_SESL * AD_SM
+  SESL_PB_AD := PB_SESL * AD_PB
+  SESL_FD_AD := FD_SESL * AD_FD
+  SESL_FM_AD := FM_SESL * AD_FM
+  SESL_AD_ind_total := SESL_AF_AD + SESL_IN_AD + SESL_SF_AD + SESL_SM_AD + SESL_PB_AD + SESL_FD_AD + SESL_FM_AD
+
+  # To Intnt
+  SESH_AF_IT := AF_SESH * IT_AF
+  SESH_IN_IT := IN_SESH * IT_IN
+  SESH_SF_IT := SF_SESH * IT_SF
+  SESH_SM_IT := SM_SESH * IT_SM
+  SESH_PB_IT := PB_SESH * IT_PB
+  SESH_FD_IT := FD_SESH * IT_FD
+  SESH_FM_IT := FM_SESH * IT_FM
+  SESH_IT_ind_total := SESH_AF_IT + SESH_IN_IT + SESH_SF_IT + SESH_SM_IT + SESH_PB_IT + SESH_FD_IT + SESH_FM_IT
+
+  SESL_AF_IT := AF_SESL * IT_AF
+  SESL_IN_IT := IN_SESL * IT_IN
+  SESL_SF_IT := SF_SESL * IT_SF
+  SESL_SM_IT := SM_SESL * IT_SM
+  SESL_PB_IT := PB_SESL * IT_PB
+  SESL_FD_IT := FD_SESL * IT_FD
+  SESL_FM_IT := FM_SESL * IT_FM
+  SESL_IT_ind_total := SESL_AF_IT + SESL_IN_IT + SESL_SF_IT + SESL_SM_IT + SESL_PB_IT + SESL_FD_IT + SESL_FM_IT
+
+  # To Vape_L4W
+  SESH_AF_VL := AF_SESH * VL_AF
+  SESH_IN_VL := IN_SESH * VL_IN
+  SESH_SF_VL := SF_SESH * VL_SF
+  SESH_SM_VL := SM_SESH * VL_SM
+  SESH_PB_VL := PB_SESH * VL_PB
+  SESH_FD_VL := FD_SESH * VL_FD
+  SESH_FM_VL := FM_SESH * VL_FM
+  SESH_VL_ind_total := SESH_AF_VL + SESH_IN_VL + SESH_SF_VL + SESH_SM_VL + SESH_PB_VL + SESH_FD_VL + SESH_FM_VL
+
+  SESL_AF_VL := AF_SESL * VL_AF
+  SESL_IN_VL := IN_SESL * VL_IN
+  SESL_SF_VL := SF_SESL * VL_SF
+  SESL_SM_VL := SM_SESL * VL_SM
+  SESL_PB_VL := PB_SESL * VL_PB
+  SESL_FD_VL := FD_SESL * VL_FD
+  SESL_FM_VL := FM_SESL * VL_FM
+  SESL_VL_ind_total := SESL_AF_VL + SESL_IN_VL + SESL_SF_VL + SESL_SM_VL + SESL_PB_VL + SESL_FD_VL + SESL_FM_VL
+
+  # Total effects (direct + indirect)
+  SESH_AD_total := SESH_AD_ind_total + AD_SESH
+  SESL_AD_total := SESL_AD_ind_total + AD_SESL
+  SESH_IT_total := SESH_IT_ind_total + IT_SESH
+  SESL_IT_total := SESL_IT_ind_total + IT_SESL
+  SESH_VL_total := SESH_VL_ind_total + VL_SESH
+  SESL_VL_total := SESL_VL_ind_total + VL_SESL
+  
+    # Indirect: Gender_Male (M) to Add
+  M_AF_AD := AF_M * AD_AF
+  M_IN_AD := IN_M * AD_IN
+  M_SF_AD := SF_M * AD_SF
+  M_SM_AD := SM_M * AD_SM
+  M_PB_AD := PB_M * AD_PB
+  M_FD_AD := FD_M * AD_FD
+  M_FM_AD := FM_M * AD_FM
+  M_AD_ind_total := M_AF_AD + M_IN_AD + M_SF_AD + M_SM_AD + M_PB_AD + M_FD_AD + M_FM_AD
+  
+  # To Intnt
+  M_AF_IT := AF_M * IT_AF
+  M_IN_IT := IN_M * IT_IN
+  M_SF_IT := SF_M * IT_SF
+  M_SM_IT := SM_M * IT_SM
+  M_PB_IT := PB_M * IT_PB
+  M_FD_IT := FD_M * IT_FD
+  M_FM_IT := FM_M * IT_FM
+  M_IT_ind_total := M_AF_IT + M_IN_IT + M_SF_IT + M_SM_IT + M_PB_IT + M_FD_IT + M_FM_IT
+  
+  # To Vape_L4W
+  M_AF_VL := AF_M * VL_AF
+  M_IN_VL := IN_M * VL_IN
+  M_SF_VL := SF_M * VL_SF
+  M_SM_VL := SM_M * VL_SM
+  M_PB_VL := PB_M * VL_PB
+  M_FD_VL := FD_M * VL_FD
+  M_FM_VL := FM_M * VL_FM
+  M_VL_ind_total := M_AF_VL + M_IN_VL + M_SF_VL + M_SM_VL + M_PB_VL + M_FD_VL + M_FM_VL
+  
+  # Total
+  M_AD_total := M_AD_ind_total + AD_M
+  M_IT_total := M_IT_ind_total + IT_M
+  M_VL_total := M_VL_ind_total + VL_M
+
+  NB_AF_AD := AF_NB * AD_AF
+  NB_IN_AD := IN_NB * AD_IN
+  NB_SF_AD := SF_NB * AD_SF
+  NB_SM_AD := SM_NB * AD_SM
+  NB_PB_AD := PB_NB * AD_PB
+  NB_FD_AD := FD_NB * AD_FD
+  NB_FM_AD := FM_NB * AD_FM
+  NB_AD_ind_total := NB_AF_AD + NB_IN_AD + NB_SF_AD + NB_SM_AD + NB_PB_AD + NB_FD_AD + NB_FM_AD
+  
+  NB_AF_IT := AF_NB * IT_AF
+  NB_IN_IT := IN_NB * IT_IN
+  NB_SF_IT := SF_NB * IT_SF
+  NB_SM_IT := SM_NB * IT_SM
+  NB_PB_IT := PB_NB * IT_PB
+  NB_FD_IT := FD_NB * IT_FD
+  NB_FM_IT := FM_NB * IT_FM
+  NB_IT_ind_total := NB_AF_IT + NB_IN_IT + NB_SF_IT + NB_SM_IT + NB_PB_IT + NB_FD_IT + NB_FM_IT
+  
+  NB_AF_VL := AF_NB * VL_AF
+  NB_IN_VL := IN_NB * VL_IN
+  NB_SF_VL := SF_NB * VL_SF
+  NB_SM_VL := SM_NB * VL_SM
+  NB_PB_VL := PB_NB * VL_PB
+  NB_FD_VL := FD_NB * VL_FD
+  NB_FM_VL := FM_NB * VL_FM
+  NB_VL_ind_total := NB_AF_VL + NB_IN_VL + NB_SF_VL + NB_SM_VL + NB_PB_VL + NB_FD_VL + NB_FM_VL
+  
+  NB_AD_total := NB_AD_ind_total + AD_NB
+  NB_IT_total := NB_IT_ind_total + IT_NB
+  NB_VL_total := NB_VL_ind_total + VL_NB
+
+  AG_AF_AD := AF_AG * AD_AF
+  AG_IN_AD := IN_AG * AD_IN
+  AG_SF_AD := SF_AG * AD_SF
+  AG_SM_AD := SM_AG * AD_SM
+  AG_PB_AD := PB_AG * AD_PB
+  AG_FD_AD := FD_AG * AD_FD
+  AG_FM_AD := FM_AG * AD_FM
+  AG_AD_ind_total := AG_AF_AD + AG_IN_AD + AG_SF_AD + AG_SM_AD + AG_PB_AD + AG_FD_AD + AG_FM_AD
+  
+  AG_AF_IT := AF_AG * IT_AF
+  AG_IN_IT := IN_AG * IT_IN
+  AG_SF_IT := SF_AG * IT_SF
+  AG_SM_IT := SM_AG * IT_SM
+  AG_PB_IT := PB_AG * IT_PB
+  AG_FD_IT := FD_AG * IT_FD
+  AG_FM_IT := FM_AG * IT_FM
+  AG_IT_ind_total := AG_AF_IT + AG_IN_IT + AG_SF_IT + AG_SM_IT + AG_PB_IT + AG_FD_IT + AG_FM_IT
+  
+  AG_AF_VL := AF_AG * VL_AF
+  AG_IN_VL := IN_AG * VL_IN
+  AG_SF_VL := SF_AG * VL_SF
+  AG_SM_VL := SM_AG * VL_SM
+  AG_PB_VL := PB_AG * VL_PB
+  AG_FD_VL := FD_AG * VL_FD
+  AG_FM_VL := FM_AG * VL_FM
+  AG_VL_ind_total := AG_AF_VL + AG_IN_VL + AG_SF_VL + AG_SM_VL + AG_PB_VL + AG_FD_VL + AG_FM_VL
+  
+  AG_AD_total := AG_AD_ind_total + AD_AG
+  AG_IT_total := AG_IT_ind_total + IT_AG
+  AG_VL_total := AG_VL_ind_total + VL_AG
+  
+    # Indirect from HeLit (HL) to Add (AD)
+  HL_AF_AD := AF_HL * AD_AF        # HeLit -> AfAtt -> Add
+  HL_IN_AD := IN_HL * AD_IN        # HeLit -> InAtt -> Add
+  HL_SF_AD := SF_HL * AD_SF        # HeLit -> SNfri -> Add
+  HL_SM_AD := SM_HL * AD_SM        # HeLit -> SNFam -> Add
+  HL_PB_AD := PB_HL * AD_PB        # HeLit -> PBC -> Add
+  HL_FD_AD := FD_HL * AD_FD        # HeLit -> FriendDN -> Add
+  HL_FM_AD := FM_HL * AD_FM        # HeLit -> FamDN -> Add
+  HL_AD_ind_total := HL_AF_AD + HL_IN_AD + HL_SF_AD + HL_SM_AD + HL_PB_AD + HL_FD_AD + HL_FM_AD
+
+  # Indirect from HeLit (HL) to Intnt (IT)
+  HL_AF_IT := AF_HL * IT_AF
+  HL_IN_IT := IN_HL * IT_IN
+  HL_SF_IT := SF_HL * IT_SF
+  HL_SM_IT := SM_HL * IT_SM
+  HL_PB_IT := PB_HL * IT_PB
+  HL_FD_IT := FD_HL * IT_FD
+  HL_FM_IT := FM_HL * IT_FM
+  HL_IT_ind_total := HL_AF_IT + HL_IN_IT + HL_SF_IT + HL_SM_IT + HL_PB_IT + HL_FD_IT + HL_FM_IT
+
+
+  # Indirect from HeLit (HL) to Vape_L4W (VL)
+  HL_AF_VL := AF_HL * VL_AF
+  HL_IN_VL := IN_HL * VL_IN
+  HL_SF_VL := SF_HL * VL_SF
+  HL_SM_VL := SM_HL * VL_SM
+  HL_PB_VL := PB_HL * VL_PB
+  HL_FD_VL := FD_HL * VL_FD
+  HL_FM_VL := FM_HL * VL_FM
+  HL_VL_ind_total := HL_AF_VL + HL_IN_VL + HL_SF_VL + HL_SM_VL + HL_PB_VL + HL_FD_VL + HL_FM_VL
+ 
+  HL_AD_total := HL_AD_ind_total + AD_HL
+  HL_IT_total := HL_IT_ind_total + IT_HL
+  HL_VL_total := HL_VL_ind_total + VL_HL
+
+'
+VapeF1 <- sem(VapeM1, estimator="MLM", NicMatched)
+summary(VapeF1, std=TRUE, fit.measures=TRUE, rsq=TRUE)
+```
+
+
+## Pouches
+```{r Pouches, message=FALSE, warning=FALSE}
+
+
+## Pouches
+
+PouchM1 <- '
+  AfAtt =~ Pouch_AffAtt1 + Pouch_AffAtt2
+  InAtt =~ Pouch_InsAtt1 + Pouch_InsAtt2
+  SNfri =~ Pouch_FamNorm1 + Pouch_FamNorm2
+  SNFam =~ Pouch_FriendNorm1 + Pouch_FriendNorm2
+  PBC =~ Pouch_PBC1 + Pouch_PBC2
+  Intnt =~ Pouch_Intent1 + Pouch_Intent2
+  Add =~ Pouch_Add1 + Pouch_Add2 + Pouch_Add3 + Pouch_Add4
+  HeLit =~ Hlit1 + Hlit2 + Hlit3 + Hlit4 + Hlit5
+
+  # Replace SES_Score with SESHigh and SESLow
+  AfAtt ~ AF_HL*HeLit + AF_SESH*SESHigh + AF_SESL*SESLow + AF_AG*Age + AF_M*Gender_Male + AF_NB*Gender_NB
+  InAtt ~ IN_HL*HeLit + IN_SESH*SESHigh + IN_SESL*SESLow + IN_AG*Age + IN_M*Gender_Male + IN_NB*Gender_NB
+  SNfri ~ SF_HL*HeLit + SF_SESH*SESHigh + SF_SESL*SESLow + SF_AG*Age + SF_M*Gender_Male + SF_NB*Gender_NB
+  SNFam ~ SM_HL*HeLit + SM_SESH*SESHigh + SM_SESL*SESLow + SM_AG*Age + SM_M*Gender_Male + SM_NB*Gender_NB
+  PBC   ~ PB_HL*HeLit + PB_SESH*SESHigh + PB_SESL*SESLow + PB_AG*Age + PB_M*Gender_Male + PB_NB*Gender_NB
+  Pouch_FriendDN ~ FD_HL*HeLit + FD_SESH*SESHigh + FD_SESL*SESLow + FD_AG*Age + FD_M*Gender_Male + FD_NB*Gender_NB
+  Pouch_FamDN    ~ FM_HL*HeLit + FM_SESH*SESHigh + FM_SESL*SESLow + FM_AG*Age + FM_M*Gender_Male + FM_NB*Gender_NB
+
+  Pouch_L4W ~ VL_AF*AfAtt + VL_IN*InAtt + VL_SF*SNfri + VL_SM*SNFam +
+             VL_PB*PBC + VL_FD*Pouch_FriendDN + VL_FM*Pouch_FamDN +
+             VL_HL*HeLit + VL_SESH*SESHigh + VL_SESL*SESLow + VL_AG*Age +
+             VL_M*Gender_Male + VL_NB*Gender_NB
+  Add ~ AD_AF*AfAtt + AD_IN*InAtt + AD_SF*SNfri + AD_SM*SNFam +
+         AD_PB*PBC + AD_FD*Pouch_FriendDN + AD_FM*Pouch_FamDN +
+         AD_HL*HeLit + AD_SESH*SESHigh + AD_SESL*SESLow + AD_AG*Age +
+         AD_M*Gender_Male + AD_NB*Gender_NB
+  Intnt ~ IT_AF*AfAtt + IT_IN*InAtt + IT_SF*SNfri + IT_SM*SNFam +
+          IT_PB*PBC + IT_FD*Pouch_FriendDN + IT_FM*Pouch_FamDN +
+          IT_HL*HeLit + IT_SESH*SESHigh + IT_SESL*SESLow + IT_AG*Age +
+          IT_M*Gender_Male + IT_NB*Gender_NB
+
+  # Covariances remain unchanged
+  HeLit ~~ SESHigh + SESLow
+  AfAtt ~~ InAtt + SNfri + SNFam + PBC + Pouch_FriendDN + Pouch_FamDN
+  InAtt ~~ SNfri + SNFam + PBC + Pouch_FriendDN + Pouch_FamDN
+  SNfri ~~ SNFam + PBC + Pouch_FriendDN + Pouch_FamDN
+  SNFam ~~ PBC + Pouch_FriendDN + Pouch_FamDN
+  PBC ~~ Pouch_FriendDN + Pouch_FamDN
+  Pouch_FriendDN ~~ Pouch_FamDN
+
+  # Indirect effects: SESHigh and SESLow to Add, Intnt, Pouch_L4W
+  SESH_AF_AD := AF_SESH * AD_AF
+  SESH_IN_AD := IN_SESH * AD_IN
+  SESH_SF_AD := SF_SESH * AD_SF
+  SESH_SM_AD := SM_SESH * AD_SM
+  SESH_PB_AD := PB_SESH * AD_PB
+  SESH_FD_AD := FD_SESH * AD_FD
+  SESH_FM_AD := FM_SESH * AD_FM
+  SESH_AD_ind_total := SESH_AF_AD + SESH_IN_AD + SESH_SF_AD + SESH_SM_AD + SESH_PB_AD + SESH_FD_AD + SESH_FM_AD
+
+  SESL_AF_AD := AF_SESL * AD_AF
+  SESL_IN_AD := IN_SESL * AD_IN
+  SESL_SF_AD := SF_SESL * AD_SF
+  SESL_SM_AD := SM_SESL * AD_SM
+  SESL_PB_AD := PB_SESL * AD_PB
+  SESL_FD_AD := FD_SESL * AD_FD
+  SESL_FM_AD := FM_SESL * AD_FM
+  SESL_AD_ind_total := SESL_AF_AD + SESL_IN_AD + SESL_SF_AD + SESL_SM_AD + SESL_PB_AD + SESL_FD_AD + SESL_FM_AD
+
+  # To Intnt
+  SESH_AF_IT := AF_SESH * IT_AF
+  SESH_IN_IT := IN_SESH * IT_IN
+  SESH_SF_IT := SF_SESH * IT_SF
+  SESH_SM_IT := SM_SESH * IT_SM
+  SESH_PB_IT := PB_SESH * IT_PB
+  SESH_FD_IT := FD_SESH * IT_FD
+  SESH_FM_IT := FM_SESH * IT_FM
+  SESH_IT_ind_total := SESH_AF_IT + SESH_IN_IT + SESH_SF_IT + SESH_SM_IT + SESH_PB_IT + SESH_FD_IT + SESH_FM_IT
+
+  SESL_AF_IT := AF_SESL * IT_AF
+  SESL_IN_IT := IN_SESL * IT_IN
+  SESL_SF_IT := SF_SESL * IT_SF
+  SESL_SM_IT := SM_SESL * IT_SM
+  SESL_PB_IT := PB_SESL * IT_PB
+  SESL_FD_IT := FD_SESL * IT_FD
+  SESL_FM_IT := FM_SESL * IT_FM
+  SESL_IT_ind_total := SESL_AF_IT + SESL_IN_IT + SESL_SF_IT + SESL_SM_IT + SESL_PB_IT + SESL_FD_IT + SESL_FM_IT
+
+  # To Pouch_L4W
+  SESH_AF_VL := AF_SESH * VL_AF
+  SESH_IN_VL := IN_SESH * VL_IN
+  SESH_SF_VL := SF_SESH * VL_SF
+  SESH_SM_VL := SM_SESH * VL_SM
+  SESH_PB_VL := PB_SESH * VL_PB
+  SESH_FD_VL := FD_SESH * VL_FD
+  SESH_FM_VL := FM_SESH * VL_FM
+  SESH_VL_ind_total := SESH_AF_VL + SESH_IN_VL + SESH_SF_VL + SESH_SM_VL + SESH_PB_VL + SESH_FD_VL + SESH_FM_VL
+
+  SESL_AF_VL := AF_SESL * VL_AF
+  SESL_IN_VL := IN_SESL * VL_IN
+  SESL_SF_VL := SF_SESL * VL_SF
+  SESL_SM_VL := SM_SESL * VL_SM
+  SESL_PB_VL := PB_SESL * VL_PB
+  SESL_FD_VL := FD_SESL * VL_FD
+  SESL_FM_VL := FM_SESL * VL_FM
+  SESL_VL_ind_total := SESL_AF_VL + SESL_IN_VL + SESL_SF_VL + SESL_SM_VL + SESL_PB_VL + SESL_FD_VL + SESL_FM_VL
+
+  # Total effects (direct + indirect)
+  SESH_AD_total := SESH_AD_ind_total + AD_SESH
+  SESL_AD_total := SESL_AD_ind_total + AD_SESL
+  SESH_IT_total := SESH_IT_ind_total + IT_SESH
+  SESL_IT_total := SESL_IT_ind_total + IT_SESL
+  SESH_VL_total := SESH_VL_ind_total + VL_SESH
+  SESL_VL_total := SESL_VL_ind_total + VL_SESL
+  
+    # Indirect: Gender_Male (M) to Add
+  M_AF_AD := AF_M * AD_AF
+  M_IN_AD := IN_M * AD_IN
+  M_SF_AD := SF_M * AD_SF
+  M_SM_AD := SM_M * AD_SM
+  M_PB_AD := PB_M * AD_PB
+  M_FD_AD := FD_M * AD_FD
+  M_FM_AD := FM_M * AD_FM
+  M_AD_ind_total := M_AF_AD + M_IN_AD + M_SF_AD + M_SM_AD + M_PB_AD + M_FD_AD + M_FM_AD
+  
+  # To Intnt
+  M_AF_IT := AF_M * IT_AF
+  M_IN_IT := IN_M * IT_IN
+  M_SF_IT := SF_M * IT_SF
+  M_SM_IT := SM_M * IT_SM
+  M_PB_IT := PB_M * IT_PB
+  M_FD_IT := FD_M * IT_FD
+  M_FM_IT := FM_M * IT_FM
+  M_IT_ind_total := M_AF_IT + M_IN_IT + M_SF_IT + M_SM_IT + M_PB_IT + M_FD_IT + M_FM_IT
+  
+  # To Pouch_L4W
+  M_AF_VL := AF_M * VL_AF
+  M_IN_VL := IN_M * VL_IN
+  M_SF_VL := SF_M * VL_SF
+  M_SM_VL := SM_M * VL_SM
+  M_PB_VL := PB_M * VL_PB
+  M_FD_VL := FD_M * VL_FD
+  M_FM_VL := FM_M * VL_FM
+  M_VL_ind_total := M_AF_VL + M_IN_VL + M_SF_VL + M_SM_VL + M_PB_VL + M_FD_VL + M_FM_VL
+  
+  # Total
+  M_AD_total := M_AD_ind_total + AD_M
+  M_IT_total := M_IT_ind_total + IT_M
+  M_VL_total := M_VL_ind_total + VL_M
+
+  NB_AF_AD := AF_NB * AD_AF
+  NB_IN_AD := IN_NB * AD_IN
+  NB_SF_AD := SF_NB * AD_SF
+  NB_SM_AD := SM_NB * AD_SM
+  NB_PB_AD := PB_NB * AD_PB
+  NB_FD_AD := FD_NB * AD_FD
+  NB_FM_AD := FM_NB * AD_FM
+  NB_AD_ind_total := NB_AF_AD + NB_IN_AD + NB_SF_AD + NB_SM_AD + NB_PB_AD + NB_FD_AD + NB_FM_AD
+  
+  NB_AF_IT := AF_NB * IT_AF
+  NB_IN_IT := IN_NB * IT_IN
+  NB_SF_IT := SF_NB * IT_SF
+  NB_SM_IT := SM_NB * IT_SM
+  NB_PB_IT := PB_NB * IT_PB
+  NB_FD_IT := FD_NB * IT_FD
+  NB_FM_IT := FM_NB * IT_FM
+  NB_IT_ind_total := NB_AF_IT + NB_IN_IT + NB_SF_IT + NB_SM_IT + NB_PB_IT + NB_FD_IT + NB_FM_IT
+  
+  NB_AF_VL := AF_NB * VL_AF
+  NB_IN_VL := IN_NB * VL_IN
+  NB_SF_VL := SF_NB * VL_SF
+  NB_SM_VL := SM_NB * VL_SM
+  NB_PB_VL := PB_NB * VL_PB
+  NB_FD_VL := FD_NB * VL_FD
+  NB_FM_VL := FM_NB * VL_FM
+  NB_VL_ind_total := NB_AF_VL + NB_IN_VL + NB_SF_VL + NB_SM_VL + NB_PB_VL + NB_FD_VL + NB_FM_VL
+  
+  NB_AD_total := NB_AD_ind_total + AD_NB
+  NB_IT_total := NB_IT_ind_total + IT_NB
+  NB_VL_total := NB_VL_ind_total + VL_NB
+
+  AG_AF_AD := AF_AG * AD_AF
+  AG_IN_AD := IN_AG * AD_IN
+  AG_SF_AD := SF_AG * AD_SF
+  AG_SM_AD := SM_AG * AD_SM
+  AG_PB_AD := PB_AG * AD_PB
+  AG_FD_AD := FD_AG * AD_FD
+  AG_FM_AD := FM_AG * AD_FM
+  AG_AD_ind_total := AG_AF_AD + AG_IN_AD + AG_SF_AD + AG_SM_AD + AG_PB_AD + AG_FD_AD + AG_FM_AD
+  
+  AG_AF_IT := AF_AG * IT_AF
+  AG_IN_IT := IN_AG * IT_IN
+  AG_SF_IT := SF_AG * IT_SF
+  AG_SM_IT := SM_AG * IT_SM
+  AG_PB_IT := PB_AG * IT_PB
+  AG_FD_IT := FD_AG * IT_FD
+  AG_FM_IT := FM_AG * IT_FM
+  AG_IT_ind_total := AG_AF_IT + AG_IN_IT + AG_SF_IT + AG_SM_IT + AG_PB_IT + AG_FD_IT + AG_FM_IT
+  
+  AG_AF_VL := AF_AG * VL_AF
+  AG_IN_VL := IN_AG * VL_IN
+  AG_SF_VL := SF_AG * VL_SF
+  AG_SM_VL := SM_AG * VL_SM
+  AG_PB_VL := PB_AG * VL_PB
+  AG_FD_VL := FD_AG * VL_FD
+  AG_FM_VL := FM_AG * VL_FM
+  AG_VL_ind_total := AG_AF_VL + AG_IN_VL + AG_SF_VL + AG_SM_VL + AG_PB_VL + AG_FD_VL + AG_FM_VL
+  
+  AG_AD_total := AG_AD_ind_total + AD_AG
+  AG_IT_total := AG_IT_ind_total + IT_AG
+  AG_VL_total := AG_VL_ind_total + VL_AG
+  
+    # Indirect from HeLit (HL) to Add (AD)
+  HL_AF_AD := AF_HL * AD_AF        # HeLit -> AfAtt -> Add
+  HL_IN_AD := IN_HL * AD_IN        # HeLit -> InAtt -> Add
+  HL_SF_AD := SF_HL * AD_SF        # HeLit -> SNfri -> Add
+  HL_SM_AD := SM_HL * AD_SM        # HeLit -> SNFam -> Add
+  HL_PB_AD := PB_HL * AD_PB        # HeLit -> PBC -> Add
+  HL_FD_AD := FD_HL * AD_FD        # HeLit -> FriendDN -> Add
+  HL_FM_AD := FM_HL * AD_FM        # HeLit -> FamDN -> Add
+  HL_AD_ind_total := HL_AF_AD + HL_IN_AD + HL_SF_AD + HL_SM_AD + HL_PB_AD + HL_FD_AD + HL_FM_AD
+
+  # Indirect from HeLit (HL) to Intnt (IT)
+  HL_AF_IT := AF_HL * IT_AF
+  HL_IN_IT := IN_HL * IT_IN
+  HL_SF_IT := SF_HL * IT_SF
+  HL_SM_IT := SM_HL * IT_SM
+  HL_PB_IT := PB_HL * IT_PB
+  HL_FD_IT := FD_HL * IT_FD
+  HL_FM_IT := FM_HL * IT_FM
+  HL_IT_ind_total := HL_AF_IT + HL_IN_IT + HL_SF_IT + HL_SM_IT + HL_PB_IT + HL_FD_IT + HL_FM_IT
+
+
+  # Indirect from HeLit (HL) to Pouch_L4W (VL)
+  HL_AF_VL := AF_HL * VL_AF
+  HL_IN_VL := IN_HL * VL_IN
+  HL_SF_VL := SF_HL * VL_SF
+  HL_SM_VL := SM_HL * VL_SM
+  HL_PB_VL := PB_HL * VL_PB
+  HL_FD_VL := FD_HL * VL_FD
+  HL_FM_VL := FM_HL * VL_FM
+  HL_VL_ind_total := HL_AF_VL + HL_IN_VL + HL_SF_VL + HL_SM_VL + HL_PB_VL + HL_FD_VL + HL_FM_VL
+ 
+  HL_AD_total := HL_AD_ind_total + AD_HL
+  HL_IT_total := HL_IT_ind_total + IT_HL
+  HL_VL_total := HL_VL_ind_total + VL_HL
+
+'
+PouchF1 <- sem(PouchM1, estimator="MLM", NicMatched)
+summary(PouchF1, std=TRUE, fit.measures=TRUE, rsq=TRUE)
+
+```
+
+```{r Cigs, message = FALSE}
+
+
+CigsM1 <- '
+  AfAtt =~ Cigs_AffAtt1 + Cigs_AffAtt2
+  InAtt =~ Cigs_InsAtt1 + Cigs_InsAtt2
+  SNfri =~ Cigs_FamNorm1 + Cigs_FamNorm2
+  SNFam =~ Cigs_FriendNorm1 + Cigs_FriendNorm2
+  PBC =~ Cigs_PBC1 + Cigs_PBC2
+  Intnt =~ Cigs_Intent1 + Cigs_Intent2
+  Add =~ Cigs_Add1 + Cigs_Add2 + Cigs_Add3 + Cigs_Add4
+  HeLit =~ Hlit1 + Hlit2 + Hlit3 + Hlit4 + Hlit5
+
+  # Replace SES_Score with SESHigh and SESLow
+  AfAtt ~ AF_HL*HeLit + AF_SESH*SESHigh + AF_SESL*SESLow + AF_AG*Age + AF_M*Gender_Male + AF_NB*Gender_NB
+  InAtt ~ IN_HL*HeLit + IN_SESH*SESHigh + IN_SESL*SESLow + IN_AG*Age + IN_M*Gender_Male + IN_NB*Gender_NB
+  SNfri ~ SF_HL*HeLit + SF_SESH*SESHigh + SF_SESL*SESLow + SF_AG*Age + SF_M*Gender_Male + SF_NB*Gender_NB
+  SNFam ~ SM_HL*HeLit + SM_SESH*SESHigh + SM_SESL*SESLow + SM_AG*Age + SM_M*Gender_Male + SM_NB*Gender_NB
+  PBC   ~ PB_HL*HeLit + PB_SESH*SESHigh + PB_SESL*SESLow + PB_AG*Age + PB_M*Gender_Male + PB_NB*Gender_NB
+  Cigs_FriendDN ~ FD_HL*HeLit + FD_SESH*SESHigh + FD_SESL*SESLow + FD_AG*Age + FD_M*Gender_Male + FD_NB*Gender_NB
+  Cigs_FamDN    ~ FM_HL*HeLit + FM_SESH*SESHigh + FM_SESL*SESLow + FM_AG*Age + FM_M*Gender_Male + FM_NB*Gender_NB
+
+  Cigs_L4W ~ VL_AF*AfAtt + VL_IN*InAtt + VL_SF*SNfri + VL_SM*SNFam +
+             VL_PB*PBC + VL_FD*Cigs_FriendDN + VL_FM*Cigs_FamDN +
+             VL_HL*HeLit + VL_SESH*SESHigh + VL_SESL*SESLow + VL_AG*Age +
+             VL_M*Gender_Male + VL_NB*Gender_NB
+  Add ~ AD_AF*AfAtt + AD_IN*InAtt + AD_SF*SNfri + AD_SM*SNFam +
+         AD_PB*PBC + AD_FD*Cigs_FriendDN + AD_FM*Cigs_FamDN +
+         AD_HL*HeLit + AD_SESH*SESHigh + AD_SESL*SESLow + AD_AG*Age +
+         AD_M*Gender_Male + AD_NB*Gender_NB
+  Intnt ~ IT_AF*AfAtt + IT_IN*InAtt + IT_SF*SNfri + IT_SM*SNFam +
+          IT_PB*PBC + IT_FD*Cigs_FriendDN + IT_FM*Cigs_FamDN +
+          IT_HL*HeLit + IT_SESH*SESHigh + IT_SESL*SESLow + IT_AG*Age +
+          IT_M*Gender_Male + IT_NB*Gender_NB
+
+  # Covariances remain unchanged
+  HeLit ~~ SESHigh + SESLow
+  AfAtt ~~ InAtt + SNfri + SNFam + PBC + Cigs_FriendDN + Cigs_FamDN
+  InAtt ~~ SNfri + SNFam + PBC + Cigs_FriendDN + Cigs_FamDN
+  SNfri ~~ SNFam + PBC + Cigs_FriendDN + Cigs_FamDN
+  SNFam ~~ PBC + Cigs_FriendDN + Cigs_FamDN
+  PBC ~~ Cigs_FriendDN + Cigs_FamDN
+  Cigs_FriendDN ~~ Cigs_FamDN
+
+  # Indirect effects: SESHigh and SESLow to Add, Intnt, Cigs_L4W
+  SESH_AF_AD := AF_SESH * AD_AF
+  SESH_IN_AD := IN_SESH * AD_IN
+  SESH_SF_AD := SF_SESH * AD_SF
+  SESH_SM_AD := SM_SESH * AD_SM
+  SESH_PB_AD := PB_SESH * AD_PB
+  SESH_FD_AD := FD_SESH * AD_FD
+  SESH_FM_AD := FM_SESH * AD_FM
+  SESH_AD_ind_total := SESH_AF_AD + SESH_IN_AD + SESH_SF_AD + SESH_SM_AD + SESH_PB_AD + SESH_FD_AD + SESH_FM_AD
+
+  SESL_AF_AD := AF_SESL * AD_AF
+  SESL_IN_AD := IN_SESL * AD_IN
+  SESL_SF_AD := SF_SESL * AD_SF
+  SESL_SM_AD := SM_SESL * AD_SM
+  SESL_PB_AD := PB_SESL * AD_PB
+  SESL_FD_AD := FD_SESL * AD_FD
+  SESL_FM_AD := FM_SESL * AD_FM
+  SESL_AD_ind_total := SESL_AF_AD + SESL_IN_AD + SESL_SF_AD + SESL_SM_AD + SESL_PB_AD + SESL_FD_AD + SESL_FM_AD
+
+  # To Intnt
+  SESH_AF_IT := AF_SESH * IT_AF
+  SESH_IN_IT := IN_SESH * IT_IN
+  SESH_SF_IT := SF_SESH * IT_SF
+  SESH_SM_IT := SM_SESH * IT_SM
+  SESH_PB_IT := PB_SESH * IT_PB
+  SESH_FD_IT := FD_SESH * IT_FD
+  SESH_FM_IT := FM_SESH * IT_FM
+  SESH_IT_ind_total := SESH_AF_IT + SESH_IN_IT + SESH_SF_IT + SESH_SM_IT + SESH_PB_IT + SESH_FD_IT + SESH_FM_IT
+
+  SESL_AF_IT := AF_SESL * IT_AF
+  SESL_IN_IT := IN_SESL * IT_IN
+  SESL_SF_IT := SF_SESL * IT_SF
+  SESL_SM_IT := SM_SESL * IT_SM
+  SESL_PB_IT := PB_SESL * IT_PB
+  SESL_FD_IT := FD_SESL * IT_FD
+  SESL_FM_IT := FM_SESL * IT_FM
+  SESL_IT_ind_total := SESL_AF_IT + SESL_IN_IT + SESL_SF_IT + SESL_SM_IT + SESL_PB_IT + SESL_FD_IT + SESL_FM_IT
+
+  # To Cigs_L4W
+  SESH_AF_VL := AF_SESH * VL_AF
+  SESH_IN_VL := IN_SESH * VL_IN
+  SESH_SF_VL := SF_SESH * VL_SF
+  SESH_SM_VL := SM_SESH * VL_SM
+  SESH_PB_VL := PB_SESH * VL_PB
+  SESH_FD_VL := FD_SESH * VL_FD
+  SESH_FM_VL := FM_SESH * VL_FM
+  SESH_VL_ind_total := SESH_AF_VL + SESH_IN_VL + SESH_SF_VL + SESH_SM_VL + SESH_PB_VL + SESH_FD_VL + SESH_FM_VL
+
+  SESL_AF_VL := AF_SESL * VL_AF
+  SESL_IN_VL := IN_SESL * VL_IN
+  SESL_SF_VL := SF_SESL * VL_SF
+  SESL_SM_VL := SM_SESL * VL_SM
+  SESL_PB_VL := PB_SESL * VL_PB
+  SESL_FD_VL := FD_SESL * VL_FD
+  SESL_FM_VL := FM_SESL * VL_FM
+  SESL_VL_ind_total := SESL_AF_VL + SESL_IN_VL + SESL_SF_VL + SESL_SM_VL + SESL_PB_VL + SESL_FD_VL + SESL_FM_VL
+
+  # Total effects (direct + indirect)
+  SESH_AD_total := SESH_AD_ind_total + AD_SESH
+  SESL_AD_total := SESL_AD_ind_total + AD_SESL
+  SESH_IT_total := SESH_IT_ind_total + IT_SESH
+  SESL_IT_total := SESL_IT_ind_total + IT_SESL
+  SESH_VL_total := SESH_VL_ind_total + VL_SESH
+  SESL_VL_total := SESL_VL_ind_total + VL_SESL
+  
+    # Indirect: Gender_Male (M) to Add
+  M_AF_AD := AF_M * AD_AF
+  M_IN_AD := IN_M * AD_IN
+  M_SF_AD := SF_M * AD_SF
+  M_SM_AD := SM_M * AD_SM
+  M_PB_AD := PB_M * AD_PB
+  M_FD_AD := FD_M * AD_FD
+  M_FM_AD := FM_M * AD_FM
+  M_AD_ind_total := M_AF_AD + M_IN_AD + M_SF_AD + M_SM_AD + M_PB_AD + M_FD_AD + M_FM_AD
+  
+  # To Intnt
+  M_AF_IT := AF_M * IT_AF
+  M_IN_IT := IN_M * IT_IN
+  M_SF_IT := SF_M * IT_SF
+  M_SM_IT := SM_M * IT_SM
+  M_PB_IT := PB_M * IT_PB
+  M_FD_IT := FD_M * IT_FD
+  M_FM_IT := FM_M * IT_FM
+  M_IT_ind_total := M_AF_IT + M_IN_IT + M_SF_IT + M_SM_IT + M_PB_IT + M_FD_IT + M_FM_IT
+  
+  # To Cigs_L4W
+  M_AF_VL := AF_M * VL_AF
+  M_IN_VL := IN_M * VL_IN
+  M_SF_VL := SF_M * VL_SF
+  M_SM_VL := SM_M * VL_SM
+  M_PB_VL := PB_M * VL_PB
+  M_FD_VL := FD_M * VL_FD
+  M_FM_VL := FM_M * VL_FM
+  M_VL_ind_total := M_AF_VL + M_IN_VL + M_SF_VL + M_SM_VL + M_PB_VL + M_FD_VL + M_FM_VL
+  
+  # Total
+  M_AD_total := M_AD_ind_total + AD_M
+  M_IT_total := M_IT_ind_total + IT_M
+  M_VL_total := M_VL_ind_total + VL_M
+
+  NB_AF_AD := AF_NB * AD_AF
+  NB_IN_AD := IN_NB * AD_IN
+  NB_SF_AD := SF_NB * AD_SF
+  NB_SM_AD := SM_NB * AD_SM
+  NB_PB_AD := PB_NB * AD_PB
+  NB_FD_AD := FD_NB * AD_FD
+  NB_FM_AD := FM_NB * AD_FM
+  NB_AD_ind_total := NB_AF_AD + NB_IN_AD + NB_SF_AD + NB_SM_AD + NB_PB_AD + NB_FD_AD + NB_FM_AD
+  
+  NB_AF_IT := AF_NB * IT_AF
+  NB_IN_IT := IN_NB * IT_IN
+  NB_SF_IT := SF_NB * IT_SF
+  NB_SM_IT := SM_NB * IT_SM
+  NB_PB_IT := PB_NB * IT_PB
+  NB_FD_IT := FD_NB * IT_FD
+  NB_FM_IT := FM_NB * IT_FM
+  NB_IT_ind_total := NB_AF_IT + NB_IN_IT + NB_SF_IT + NB_SM_IT + NB_PB_IT + NB_FD_IT + NB_FM_IT
+  
+  NB_AF_VL := AF_NB * VL_AF
+  NB_IN_VL := IN_NB * VL_IN
+  NB_SF_VL := SF_NB * VL_SF
+  NB_SM_VL := SM_NB * VL_SM
+  NB_PB_VL := PB_NB * VL_PB
+  NB_FD_VL := FD_NB * VL_FD
+  NB_FM_VL := FM_NB * VL_FM
+  NB_VL_ind_total := NB_AF_VL + NB_IN_VL + NB_SF_VL + NB_SM_VL + NB_PB_VL + NB_FD_VL + NB_FM_VL
+  
+  NB_AD_total := NB_AD_ind_total + AD_NB
+  NB_IT_total := NB_IT_ind_total + IT_NB
+  NB_VL_total := NB_VL_ind_total + VL_NB
+
+  AG_AF_AD := AF_AG * AD_AF
+  AG_IN_AD := IN_AG * AD_IN
+  AG_SF_AD := SF_AG * AD_SF
+  AG_SM_AD := SM_AG * AD_SM
+  AG_PB_AD := PB_AG * AD_PB
+  AG_FD_AD := FD_AG * AD_FD
+  AG_FM_AD := FM_AG * AD_FM
+  AG_AD_ind_total := AG_AF_AD + AG_IN_AD + AG_SF_AD + AG_SM_AD + AG_PB_AD + AG_FD_AD + AG_FM_AD
+  
+  AG_AF_IT := AF_AG * IT_AF
+  AG_IN_IT := IN_AG * IT_IN
+  AG_SF_IT := SF_AG * IT_SF
+  AG_SM_IT := SM_AG * IT_SM
+  AG_PB_IT := PB_AG * IT_PB
+  AG_FD_IT := FD_AG * IT_FD
+  AG_FM_IT := FM_AG * IT_FM
+  AG_IT_ind_total := AG_AF_IT + AG_IN_IT + AG_SF_IT + AG_SM_IT + AG_PB_IT + AG_FD_IT + AG_FM_IT
+  
+  AG_AF_VL := AF_AG * VL_AF
+  AG_IN_VL := IN_AG * VL_IN
+  AG_SF_VL := SF_AG * VL_SF
+  AG_SM_VL := SM_AG * VL_SM
+  AG_PB_VL := PB_AG * VL_PB
+  AG_FD_VL := FD_AG * VL_FD
+  AG_FM_VL := FM_AG * VL_FM
+  AG_VL_ind_total := AG_AF_VL + AG_IN_VL + AG_SF_VL + AG_SM_VL + AG_PB_VL + AG_FD_VL + AG_FM_VL
+  
+  AG_AD_total := AG_AD_ind_total + AD_AG
+  AG_IT_total := AG_IT_ind_total + IT_AG
+  AG_VL_total := AG_VL_ind_total + VL_AG
+  
+    # Indirect from HeLit (HL) to Add (AD)
+  HL_AF_AD := AF_HL * AD_AF        # HeLit -> AfAtt -> Add
+  HL_IN_AD := IN_HL * AD_IN        # HeLit -> InAtt -> Add
+  HL_SF_AD := SF_HL * AD_SF        # HeLit -> SNfri -> Add
+  HL_SM_AD := SM_HL * AD_SM        # HeLit -> SNFam -> Add
+  HL_PB_AD := PB_HL * AD_PB        # HeLit -> PBC -> Add
+  HL_FD_AD := FD_HL * AD_FD        # HeLit -> FriendDN -> Add
+  HL_FM_AD := FM_HL * AD_FM        # HeLit -> FamDN -> Add
+  HL_AD_ind_total := HL_AF_AD + HL_IN_AD + HL_SF_AD + HL_SM_AD + HL_PB_AD + HL_FD_AD + HL_FM_AD
+
+  # Indirect from HeLit (HL) to Intnt (IT)
+  HL_AF_IT := AF_HL * IT_AF
+  HL_IN_IT := IN_HL * IT_IN
+  HL_SF_IT := SF_HL * IT_SF
+  HL_SM_IT := SM_HL * IT_SM
+  HL_PB_IT := PB_HL * IT_PB
+  HL_FD_IT := FD_HL * IT_FD
+  HL_FM_IT := FM_HL * IT_FM
+  HL_IT_ind_total := HL_AF_IT + HL_IN_IT + HL_SF_IT + HL_SM_IT + HL_PB_IT + HL_FD_IT + HL_FM_IT
+
+
+  # Indirect from HeLit (HL) to Cigs_L4W (VL)
+  HL_AF_VL := AF_HL * VL_AF
+  HL_IN_VL := IN_HL * VL_IN
+  HL_SF_VL := SF_HL * VL_SF
+  HL_SM_VL := SM_HL * VL_SM
+  HL_PB_VL := PB_HL * VL_PB
+  HL_FD_VL := FD_HL * VL_FD
+  HL_FM_VL := FM_HL * VL_FM
+  HL_VL_ind_total := HL_AF_VL + HL_IN_VL + HL_SF_VL + HL_SM_VL + HL_PB_VL + HL_FD_VL + HL_FM_VL
+ 
+  HL_AD_total := HL_AD_ind_total + AD_HL
+  HL_IT_total := HL_IT_ind_total + IT_HL
+  HL_VL_total := HL_VL_ind_total + VL_HL
+
+
+'
+CigsF1 <- sem(CigsM1, estimator="MLM", NicMatched)
+summary(CigsF1, std=TRUE, fit.measures=TRUE, rsq=TRUE)
+```
+
+
+# Supplement 2.4 - Effect Size Comparisons
+
+``` {r Comps, message = FALSE}
+### Model Comps
+V <- standardizedSolution(VapeF1, se = TRUE, zstat = FALSE,ci = FALSE,pvalue=FALSE)
+P <-standardizedSolution(PouchF1, se = TRUE, zstat = FALSE,ci = FALSE,pvalue=FALSE)
+C <- standardizedSolution(CigsF1, se = TRUE, zstat = FALSE,ci = FALSE,pvalue=FALSE)
+P_trimmed <- P[, -c(1:4)]
+C_trimmed <- C[, -c(1:4)]
+colnames(P_trimmed) <- paste0("P_", colnames(P_trimmed))
+colnames(C_trimmed) <- paste0("C_", colnames(C_trimmed))
+colnames(V)[5] <- "V_est.std"
+colnames(V)[6] <- "V_se"
+for (col in 1:4) {
+  V[[col]] <- gsub("Vape_", "", V[[col]])
+}
+
+
+ESComps <- cbind(V, P_trimmed, C_trimmed)
+N <- 1200  # sample size per group
+n <- nrow(ESComps)
+
+calc_p <- function(m1, se1, m2, se2) {
+  t_stat <- abs(m1 - m2) / sqrt(se1^2 + se2^2)
+  df <- ((se1^2 + se2^2)^2) / ((se1^4 / (N - 1)) + (se2^4 / (N - 1)))
+  2 * pt(-abs(t_stat), df)
+}
+
+p_VP <- numeric(n)
+p_VC <- numeric(n)
+p_PC <- numeric(n)
+p_bonf_VP <- numeric(n)
+p_bonf_VC <- numeric(n)
+p_bonf_PC <- numeric(n)
+p_holm_VP <- numeric(n)
+p_holm_VC <- numeric(n)
+p_holm_PC <- numeric(n)
+p_bh_VP <- numeric(n)
+p_bh_VC <- numeric(n)
+p_bh_PC <- numeric(n)
+
+for (i in 1:n) {
+  p_raw <- c(
+    calc_p(ESComps$V_est.std[i], ESComps$V_se[i], ESComps$P_est.std[i], ESComps$P_se[i]),
+    calc_p(ESComps$V_est.std[i], ESComps$V_se[i], ESComps$C_est.std[i], ESComps$C_se[i]),
+    calc_p(ESComps$P_est.std[i], ESComps$P_se[i], ESComps$C_est.std[i], ESComps$C_se[i])
+  )
+  
+  p_VP[i] <- p_raw[1]
+  p_VC[i] <- p_raw[2]
+  p_PC[i] <- p_raw[3]
+  
+  p_adj_bonf <- p.adjust(p_raw, method = "bonferroni")
+  p_adj_holm <- p.adjust(p_raw, method = "holm")
+  p_adj_bh <- p.adjust(p_raw, method = "BH")
+  
+  p_bonf_VP[i] <- p_adj_bonf[1]
+  p_bonf_VC[i] <- p_adj_bonf[2]
+  p_bonf_PC[i] <- p_adj_bonf[3]
+  
+  p_holm_VP[i] <- p_adj_holm[1]
+  p_holm_VC[i] <- p_adj_holm[2]
+  p_holm_PC[i] <- p_adj_holm[3]
+  
+  p_bh_VP[i] <- p_adj_bh[1]
+  p_bh_VC[i] <- p_adj_bh[2]
+  p_bh_PC[i] <- p_adj_bh[3]
+}
+
+
+ESComps$p_VP_LSD <- p_VP
+ESComps$p_VP_bh <- p_bh_VP
+ESComps$p_VP_holm <- p_holm_VP
+ESComps$p_VP_bon <- p_bonf_VP
+
+
+ESComps$p_VC_LSD <- p_VC
+ESComps$p_VC_bh <- p_bh_VC
+ESComps$p_VC_holm <- p_holm_VC
+ESComps$p_VC_bon <- p_bonf_VC
+
+
+ESComps$p_PC_LSD <- p_PC
+ESComps$p_PC_bh <- p_bh_PC
+ESComps$p_PC_holm <- p_holm_PC
+ESComps$p_PC_bon <- p_bonf_PC
+
+
+df_hedges <- 2*N - 2
+
+# Calculate SD from SE
+ESComps$V_sd <- ESComps$V_se * sqrt(N)
+ESComps$P_sd <- ESComps$P_se * sqrt(N)
+ESComps$C_sd <- ESComps$C_se * sqrt(N)
+
+cohens_d <- function(m1, sd1, m2, sd2) {
+  sd_pooled <- sqrt(((sd1^2) + (sd2^2)) / 2)
+  (m1 - m2) / sd_pooled
+}
+
+hedges_g <- function(d, df) {
+  correction <- 1 - (3 / (4*df - 1))
+  d * correction
+}
+
+ESComps$d_VP <- cohens_d(ESComps$V_est.std, ESComps$V_sd, ESComps$P_est.std, ESComps$P_sd)
+ESComps$d_VC <- cohens_d(ESComps$V_est.std, ESComps$V_sd, ESComps$C_est.std, ESComps$C_sd)
+ESComps$d_PC <- cohens_d(ESComps$P_est.std, ESComps$P_sd, ESComps$C_est.std, ESComps$C_sd)
+
+ESComps$g_VP <- hedges_g(ESComps$d_VP, df_hedges)
+ESComps$g_VC <- hedges_g(ESComps$d_VC, df_hedges)
+ESComps$g_PC <- hedges_g(ESComps$d_PC, df_hedges)
+
+ESComps[[1]] <- as.character(ESComps[[1]])
+ESComps <- ESComps[, -c(4)]
+
+ESComps <- ESComps %>%
+  select(
+    -ends_with("_se"),
+    -ends_with("_sd"),
+    -ends_with("_bon"),
+    -ends_with("_holm"),
+    -starts_with("d_")
+
+    
+  )  %>%
+  mutate(across(where(is.numeric), ~ round(.x, 3)))
+
+
+ESComps_loadings <- ESComps %>% filter(op == "=~")
+ESComps_reg <- ESComps %>% filter(op == "~")
+ESComps_cov <- ESComps %>% filter(op == "~~")
+ESComps_ind <- ESComps %>% filter(op == ":=")
+ESComps_ind <- ESComps_ind[, -c(2:3)]
+
+ESComp_clean <- ESComps %>%
+  select(
+    -ends_with("_se"),
+    -ends_with("_sd"),
+    -ends_with("_bon"),
+    -ends_with("_holm")
+  )  %>%
+  mutate(across(where(is.numeric), ~ round(.x, 3)))
+
+library(reactable)
+```
+
+## Direct Effect Comparisons
+``` {r RegressionComps}
+
+reactable(
+  ESComps_reg,
+  pagination = TRUE,
+  defaultPageSize = 50,
+  searchable = TRUE,
+  highlight = TRUE,
+  striped = TRUE
+)
+```
+
+## Indirect Effect Comparions
+HL = Health Literacy.
+SESL = Low socioeconomic status (vs. Middle).
+SESH = High socioeconomic status (vs. Middle).
+AG = Age.
+M = Male (vs. Female).
+NB = Non-binary (vs. Female).
+AF = Affective Attitude.
+IN = Instrumental Attitude.
+SF = Friend Subjective Norms.
+SM = Family Subjective Norms.
+FD = Friends Descriptive Norm.
+FM = Family Descriptive Norm.
+IT = Intention.
+VL = Past Behavior.
+AD = Addiction.
+``` {r Indirect Comps}
+
+reactable(
+  ESComps_ind,
+  pagination = TRUE,
+  defaultPageSize = 50,
+  searchable = TRUE,
+  highlight = TRUE,
+  striped = TRUE
+)
+```
+
