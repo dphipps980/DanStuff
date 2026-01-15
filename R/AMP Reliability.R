@@ -153,7 +153,7 @@ AMPReliability <- function(data, columns, id_col = "ID",
 
         # Reshape to wide format
         wide <- split.means %>%
-          pivot_wider(names_from = split,
+          tidyr::pivot_wider(names_from = split,
                       values_from = rating.mean,
                       id_cols = c(ID, prime))
 
@@ -186,7 +186,7 @@ AMPReliability <- function(data, columns, id_col = "ID",
 
       # Reshape to wide format
       wide <- split.means %>%
-        pivot_wider(names_from = split,
+        tidyr::pivot_wider(names_from = split,
                     values_from = rating.mean,
                     id_cols = c(ID, prime))
 
